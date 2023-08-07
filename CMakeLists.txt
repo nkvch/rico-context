@@ -57,6 +57,9 @@ add_message_files(
 add_service_files(
   FILES
   GetContext.srv
+  ResetContext.srv
+  IsInTask.srv
+  GetCurrentScenarioId.srv
 )
 
 ## Generate actions in the 'action' folder
