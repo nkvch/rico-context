@@ -12,6 +12,7 @@ class RicoContext(object):
         self.sub = rospy.Subscriber('/context/push', HistoryEvent, self.push_callback)
         self.get_service = rospy.Service('/context/get', GetContext, self.get_context)
         self.reset_service = rospy.Service('/context/reset', ResetContext, self.reset_context)
+        self.reset_scenario_service = rospy.Service('/context/reset_scenario', ResetContext, self.reset_scenario)
         self.is_in_task_service = rospy.Service('/context/is_in_task', IsInTask, self.is_in_task)
         self.get_current_scenario_id_service = rospy.Service('/context/scenario_id', GetCurrentScenarioId, self.get_current_scenario_id)
 
@@ -62,6 +63,18 @@ class RicoContext(object):
             rospy.logerr("Error resetting context: %s", e)
 
         return ResetContextResponse(success)
+    
+    def reset_scenario(self, req):
+        rospy.loginfo("Reset scenario: %s", req)
+        new_history = []
+
+        for i, event in enumerate(self.history):
+            if event.actor == 'system' and event.action == 'trigger scenario':
+                new_history = self.history[:i]
+
+        self.history = new_history
+            
+        return ResetContextResponse(True)
 
 def main():
     rospy.init_node('rico_context', anonymous=True)
