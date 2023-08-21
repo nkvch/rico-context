@@ -20,7 +20,11 @@ class RicoContext(object):
     def push_callback(self, msg):
         is_idle = 'idle' in msg.complement
 
-        if not is_idle:
+        previous_event = self.history[-1] if len(self.history) > 0 else None
+
+        is_timeout_repeat = previous_event is not None and previous_event.actor == msg.actor and previous_event.action == msg.action and previous_event.complement == msg.complement
+
+        if not is_idle and not is_timeout_repeat:
             self.history.append(msg)
         rospy.loginfo("History: %s", self.history)
 
