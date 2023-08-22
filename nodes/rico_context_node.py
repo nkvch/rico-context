@@ -15,6 +15,7 @@ class RicoContext(object):
         self.reset_scenario_service = rospy.Service('/context/reset_scenario', ResetContext, self.reset_scenario)
         self.is_in_task_service = rospy.Service('/context/is_in_task', IsInTask, self.is_in_task)
         self.get_current_scenario_id_service = rospy.Service('/context/scenario_id', GetCurrentScenarioId, self.get_current_scenario_id)
+        self.get_context_after_last_scenario_service = rospy.Service('/context/get_after_last_scenario', GetContext, self.get_context_after_last_scenario)
 
 
     def push_callback(self, msg):
@@ -31,6 +32,16 @@ class RicoContext(object):
     def get_context(self, req):
         rospy.loginfo("Get context: %s", req)
         return GetContextResponse(self.history)
+    
+    def get_context_after_last_scenario(self, req):
+        rospy.loginfo("Get context after last scenario: %s", req)
+        latest_history = self.history
+
+        for i, event in enumerate(self.history):
+            if event.actor == 'system' and event.action == 'finish scenario':
+                latest_history = self.history[i+1:]
+
+        return GetContextResponse(latest_history)
     
     def is_in_task(self, req):
         is_in_task = False
@@ -67,7 +78,7 @@ class RicoContext(object):
             rospy.logerr("Error resetting context: %s", e)
 
         return ResetContextResponse(success)
-    
+
     def reset_scenario(self, req):
         rospy.loginfo("Reset scenario: %s", req)
         new_history = []
