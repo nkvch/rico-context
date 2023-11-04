@@ -3,12 +3,15 @@
 
 import rospy
 from rico_context.msg import HistoryEvent
+import tiago_msgs.msg
 from rico_context.srv import GetContext, GetContextResponse, ResetContext, ResetContextResponse, IsInTask, IsInTaskResponse, GetCurrentScenarioId, GetCurrentScenarioIdResponse
 
 class RicoContext(object):
     def __init__(self):
         self.history = []
+        self.current_task = None
 
+        self.start_task_sub = rospy.Subscriber('/context/start_task', tiago_msgs.msg.Command, self.start_task_callback)
         self.sub = rospy.Subscriber('/context/push', HistoryEvent, self.push_callback)
         self.get_service = rospy.Service('/context/get', GetContext, self.get_context)
         self.reset_service = rospy.Service('/context/reset', ResetContext, self.reset_context)
@@ -17,6 +20,18 @@ class RicoContext(object):
         self.get_current_scenario_id_service = rospy.Service('/context/scenario_id', GetCurrentScenarioId, self.get_current_scenario_id)
         self.get_context_after_last_scenario_service = rospy.Service('/context/get_after_last_scenario', GetContext, self.get_context_after_last_scenario)
 
+    def start_task_callback(self, data):
+        intent_name = data.intent_name
+        params = {}
+        for param_name, param_value in zip(data.param_names, data.param_values):
+            params[param_name] = param_value
+
+        self.current_task = {
+            'intent_name': intent_name,
+            'params': params
+        }
+
+        print("Current task: %s" % self.current_task)
 
     def push_callback(self, msg):
         is_idle = 'idle' in msg.complement
@@ -27,6 +42,10 @@ class RicoContext(object):
 
         if not is_idle and not is_timeout_repeat:
             self.history.append(msg)
+
+        if msg.action == 'finish performing' and self.current_task is not None:
+            self.current_task = None
+
         rospy.loginfo("History: %s", self.history)
 
     def get_context(self, req):
